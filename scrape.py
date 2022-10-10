@@ -7,6 +7,7 @@ Reference: Using AAPL's recent 10-K
 import requests
 from bs4 import BeautifulSoup
 import json
+from openpyxl import load_workbook
 
 # Change URL here, add in data
 # To-Do: programmatically get all the necessary data information using open .json, and then identify each.
@@ -20,10 +21,7 @@ Process is as follows:
 '''
 url = "https://www.sec.gov/Archives/edgar/data/320193/000032019321000105/aapl-20210925.htm"
 
-
-all_info = {
-    'total net sales': []
-}
+all_info = {}
 
 '''
 Make a request to EDGAR database
@@ -72,14 +70,49 @@ Using a list of potential names for a category, grab the relevant data.
 
 BIG ASSUMPTION: no row header will be utilized twice.
 '''
-def find_category(form_data, categories, is_balance_sheet):
+def find_category(form_data, categories, official_name, is_balance_sheet):
     for table in form_data:
         for row in table:
             selected_string = (row[0].lower())
             for category in categories:
                 if (selected_string == category):
                     if (not is_balance_sheet and len(row) == 4):
-                        all_info[category] = row[1:]
+                        all_info[official_name] = row[1:]
+                    if (is_balance_sheet and len(row) == 3):
+                        all_info[official_name] = row[1:]
+
+'''
+Editing the spreadsheet of all data
+'''
+def edit_spreadsheet(file_name, mapping):
+    # Open the Spreadsheet and find the corresponding values
+    workbook = load_workbook(file_name)
+
+    # Iterate through the JSON and see what we need
+    m = open(mapping)
+    data = json.load(m)
+
+    # Iterate and update corresponding categories
+    for category in data["nbs_metrics"]:
+        for i in range(len(data["nbs_metrics"][category])):
+            curr_value = all_info[category][i]
+            curr_value = curr_value.replace(",", "")
+            curr_value = curr_value.replace("(", "")
+            curr_value = curr_value.replace(")", "")
+            workbook["FSM Model Complete Output"][data["nbs_metrics"][category][i]] = int(curr_value) #all_info[category][i]
+
+
+    for category in data["bs_metrics"]:
+        for i in range(len(data["bs_metrics"][category])):
+            curr_value = all_info[category][i]
+            curr_value = curr_value.replace(",", "")
+            curr_value = curr_value.replace("(", "")
+            curr_value = curr_value.replace(")", "")
+            workbook["FSM Model Complete Output"][data["bs_metrics"][category][i]] = int(curr_value)
+
+    # Save workbook    
+    workbook.save('updated.xlsx')
+
 
 '''
 Main function to simply get all data
@@ -95,6 +128,11 @@ if __name__ == "__main__":
 
     # Read in the non balance sheet metrics
     for category in data["nbs_metrics"]:
-        find_category(form_data, data["nbs_metrics"][category], False)
+        find_category(form_data, data["nbs_metrics"][category], category, False)
+
+    # Read in balance sheet metrics
+    for category in data["bs_metrics"]:
+        find_category(form_data, data["bs_metrics"][category], category, True)
     
-    print(all_info)
+    spreadsheet_file = "Banker.io Automated DCF FSMs Template V1.xlsx"
+    edit_spreadsheet(spreadsheet_file, "mapping.json")
