@@ -165,7 +165,7 @@ def create_filled_spreadsheet(url, file_name):
     form_data = get_table_data(soup)
     
     # Read in JSON file
-    f = open('formatting.json')
+    f = open('reference/formatting.json')
     data = json.load(f)
 
     # Read in the non balance sheet metrics
@@ -179,7 +179,5 @@ def create_filled_spreadsheet(url, file_name):
     for category in data["sep_metrics"]:
         all_info[category] = [0, 0, 0]
     
-    spreadsheet_file = "Banker.io Automated DCF FSMs Template V3.xlsx"
-    edit_spreadsheet(spreadsheet_file, "mapping.json", file_name)
-
-create_filled_spreadsheet("https://www.sec.gov/Archives/edgar/data/1318605/000095017022000796/tsla-20211231.htm", "test-tesla")
+    spreadsheet_file = "spreadsheets/Banker.io Automated DCF FSMs Template V3.xlsx"
+    edit_spreadsheet(spreadsheet_file, "reference/mapping.json", file_name)

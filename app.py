@@ -7,7 +7,7 @@ from scrape import create_filled_spreadsheet
 app = Flask(__name__)
 
 # Get data on all companies
-f = open('sec.json')
+f = open('reference/sec.json')
 company_data = json.load(f)
 
 '''
