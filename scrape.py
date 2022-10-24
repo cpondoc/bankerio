@@ -75,11 +75,23 @@ def find_category(form_data, categories, official_name, is_balance_sheet):
         for row in table:
             selected_string = (row[0].lower())
             for category in categories:
+                '''if isinstance(category, list):
+                    total = 0
+                    for i in range(len(category)):
+                        if (selected_string == category):
+                            if (not is_balance_sheet and len(row) == 4):
+                                total += 
+                            if (is_balance_sheet and len(row) == 3):
+                                all_info[official_name] = row[1:]
+                                break'''
+                #else:
                 if (selected_string == category):
                     if (not is_balance_sheet and len(row) == 4):
-                        all_info[official_name] = row[1:]
+                        if (official_name not in all_info):
+                            all_info[official_name] = row[1:]
                     if (is_balance_sheet and len(row) == 3):
-                        all_info[official_name] = row[1:]
+                        if (official_name not in all_info):
+                            all_info[official_name] = row[1:]
 
 '''
 Editing the spreadsheet of all data
@@ -134,5 +146,5 @@ if __name__ == "__main__":
     for category in data["bs_metrics"]:
         find_category(form_data, data["bs_metrics"][category], category, True)
     
-    spreadsheet_file = "Banker.io Automated DCF FSMs Template V1.xlsx"
+    spreadsheet_file = "Banker.io Automated DCF FSMs Template V3.xlsx"
     edit_spreadsheet(spreadsheet_file, "mapping.json")
