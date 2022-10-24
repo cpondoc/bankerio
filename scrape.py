@@ -24,6 +24,15 @@ url = "https://www.sec.gov/Archives/edgar/data/320193/000032019321000105/aapl-20
 all_info = {}
 
 '''
+Make dealing with numbers a bit easier
+'''
+def strip_vals(text_val):
+    curr_value = text_val.replace(",", "")
+    curr_value = curr_value.replace("(", "")
+    curr_value = curr_value.replace(")", "")
+    return int(curr_value)
+
+'''
 Make a request to EDGAR database
 '''
 def make_request(url):
@@ -75,23 +84,28 @@ def find_category(form_data, categories, official_name, is_balance_sheet):
         for row in table:
             selected_string = (row[0].lower())
             for category in categories:
-                '''if isinstance(category, list):
-                    total = 0
-                    for i in range(len(category)):
-                        if (selected_string == category):
-                            if (not is_balance_sheet and len(row) == 4):
-                                total += 
-                            if (is_balance_sheet and len(row) == 3):
+                if (isinstance(category, str)):
+                    if (selected_string == category):
+                        if (not is_balance_sheet and len(row) == 4):
+                            if (official_name not in all_info):
                                 all_info[official_name] = row[1:]
-                                break'''
-                #else:
-                if (selected_string == category):
-                    if (not is_balance_sheet and len(row) == 4):
-                        if (official_name not in all_info):
-                            all_info[official_name] = row[1:]
-                    if (is_balance_sheet and len(row) == 3):
-                        if (official_name not in all_info):
-                            all_info[official_name] = row[1:]
+                        if (is_balance_sheet and len(row) == 3):
+                            if (official_name not in all_info):
+                                all_info[official_name] = row[1:]
+                else:
+                    # Create initial array within all_info
+                    if official_name not in all_info:
+                        all_info[official_name] = [0] * 2
+                        if (is_balance_sheet):
+                            all_info[official_name].append(0)
+                    
+                    seen_rows = []
+                    for line in category:
+                        if (selected_string == line and row not in seen_rows):
+                            seen_rows.append(row)
+                            for i in range(1, len(row)):
+                                all_info[official_name][i-1] += (strip_vals(row[i]))
+                            print(all_info[official_name])
 
 '''
 Editing the spreadsheet of all data
@@ -117,10 +131,13 @@ def edit_spreadsheet(file_name, mapping):
     for category in data["bs_metrics"]:
         for i in range(len(data["bs_metrics"][category])):
             curr_value = all_info[category][i]
-            curr_value = curr_value.replace(",", "")
-            curr_value = curr_value.replace("(", "")
-            curr_value = curr_value.replace(")", "")
+            if (isinstance(curr_value, str)):
+                curr_value = strip_vals(curr_value)
             workbook["FSM Model Complete Output"][data["bs_metrics"][category][i]] = int(curr_value)
+    
+    for category in data["sep_metrics"]:
+        for i in range(len(data["sep_metrics"][category])):
+            workbook["FSM Model Complete Output"][data["sep_metrics"][category][i]] = all_info[category][i]
 
     # Save workbook    
     workbook.save('updated.xlsx')
@@ -145,6 +162,9 @@ if __name__ == "__main__":
     # Read in balance sheet metrics
     for category in data["bs_metrics"]:
         find_category(form_data, data["bs_metrics"][category], category, True)
+
+    for category in data["sep_metrics"]:
+        all_info[category] = [0, 0, 0]
     
     spreadsheet_file = "Banker.io Automated DCF FSMs Template V3.xlsx"
     edit_spreadsheet(spreadsheet_file, "mapping.json")
