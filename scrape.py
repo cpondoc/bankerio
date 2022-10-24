@@ -30,6 +30,8 @@ def strip_vals(text_val):
     curr_value = text_val.replace(",", "")
     curr_value = curr_value.replace("(", "")
     curr_value = curr_value.replace(")", "")
+    curr_value = curr_value.replace("%", "")
+    curr_value = curr_value.replace("—", "")
     return int(curr_value)
 
 '''
@@ -80,12 +82,17 @@ Using a list of potential names for a category, grab the relevant data.
 BIG ASSUMPTION: no row header will be utilized twice.
 '''
 def find_category(form_data, categories, official_name, is_balance_sheet):
+    # Finding the data
     for table in form_data:
         for row in table:
             selected_string = (row[0].lower())
             for category in categories:
                 if (isinstance(category, str)):
                     if (selected_string == category):
+                        print(selected_string)
+                        print(category)
+                        print(row)
+                        print("")
                         if (not is_balance_sheet and len(row) == 4):
                             if (official_name not in all_info):
                                 all_info[official_name] = row[1:]
@@ -105,12 +112,19 @@ def find_category(form_data, categories, official_name, is_balance_sheet):
                             seen_rows.append(row)
                             for i in range(1, len(row)):
                                 all_info[official_name][i-1] += (strip_vals(row[i]))
-                            print(all_info[official_name])
+    
+    # Error at the end
+    if (official_name not in all_info):
+        if (not is_balance_sheet):
+            all_info[official_name] = [0, 0, 0]
+        else:
+            all_info[official_name] = [0, 0]
+    
 
 '''
 Editing the spreadsheet of all data
 '''
-def edit_spreadsheet(file_name, mapping):
+def edit_spreadsheet(file_name, mapping, save_file):
     # Open the Spreadsheet and find the corresponding values
     workbook = load_workbook(file_name)
 
@@ -122,10 +136,9 @@ def edit_spreadsheet(file_name, mapping):
     for category in data["nbs_metrics"]:
         for i in range(len(data["nbs_metrics"][category])):
             curr_value = all_info[category][i]
-            curr_value = curr_value.replace(",", "")
-            curr_value = curr_value.replace("(", "")
-            curr_value = curr_value.replace(")", "")
-            workbook["FSM Model Complete Output"][data["nbs_metrics"][category][i]] = int(curr_value) #all_info[category][i]
+            if (isinstance(curr_value, str)):
+                curr_value = strip_vals(curr_value)
+            workbook["FSM Model Complete Output"][data["nbs_metrics"][category][i]] = int(curr_value)
 
 
     for category in data["bs_metrics"]:
@@ -140,13 +153,13 @@ def edit_spreadsheet(file_name, mapping):
             workbook["FSM Model Complete Output"][data["sep_metrics"][category][i]] = all_info[category][i]
 
     # Save workbook    
-    workbook.save('updated.xlsx')
+    workbook.save('saved/' + save_file + '.xlsx')
 
 
 '''
 Main function to simply get all data
 '''
-if __name__ == "__main__":
+def create_filled_spreadsheet(url, file_name):
     # Grab form data
     soup = make_request(url)
     form_data = get_table_data(soup)
@@ -167,4 +180,6 @@ if __name__ == "__main__":
         all_info[category] = [0, 0, 0]
     
     spreadsheet_file = "Banker.io Automated DCF FSMs Template V3.xlsx"
-    edit_spreadsheet(spreadsheet_file, "mapping.json")
+    edit_spreadsheet(spreadsheet_file, "mapping.json", file_name)
+
+create_filled_spreadsheet("https://www.sec.gov/Archives/edgar/data/1318605/000095017022000796/tsla-20211231.htm", "test-tesla")
